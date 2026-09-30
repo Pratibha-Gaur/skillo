@@ -1,0 +1,94 @@
+@import "@fontsource-variable/manrope";
+@import "@fontsource-variable/newsreader";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --canvas: #f7f6f1;
+  --surface: #fffefa;
+  --ink: #17231d;
+  --muted: #617068;
+  --line: #dfe3dc;
+  --brand: #167052;
+  --brand-dark: #0e5940;
+  --brand-soft: #e7f1eb;
+  --coral: #e96f55;
+  --sun: #e4ad42;
+  --sky: #4e7fae;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: "Manrope Variable", ui-sans-serif, system-ui, sans-serif;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: #cce3d6;
+  color: #0d3d2d;
+}
+
+button,
+a,
+input,
+textarea,
+select {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button,
+a {
+  touch-action: manipulation;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #8a958f;
+}
+
+@layer components {
+  .page-shell {
+    @apply mx-auto w-full max-w-[1160px] px-4 sm:px-6 lg:px-8;
+  }
+
+  .field {
+    @apply min-h-11 w-full rounded-[10px] border-line bg-white px-3.5 text-[0.95rem] text-ink shadow-none outline-none transition focus:border-brand focus:ring-2 focus:ring-brand;
+  }
+
+  .field-label {
+    @apply mb-2 block text-sm font-bold text-ink;
+  }
+
+  .surface-panel {
+    @apply rounded-2xl border border-line bg-surface;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
