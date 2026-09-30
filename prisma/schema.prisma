@@ -1,0 +1,447 @@
+generator client {
+  provider   = "prisma-client"
+  output     = "../generated/prisma"
+  engineType = "client"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id             String   @id @default(cuid())
+  email          String   @unique
+  passwordHash   String
+  role           String   @default("USER")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  profile             Profile?
+  skills              UserSkill[]
+  goals               LearningGoal[]
+  posts               Post[]
+  reactions           PostReaction[]
+  following           Follow[]                 @relation("FollowFrom")
+  followers           Follow[]                 @relation("FollowTo")
+  followedSkills      SkillFollow[]
+  proposedExchanges   Exchange[]               @relation("ExchangeProposer")
+  receivedExchanges   Exchange[]               @relation("ExchangeRecipient")
+  sessionsTaught      Session[]                @relation("SessionTeacher")
+  sessionsLearned     Session[]                @relation("SessionLearner")
+  creditTransactions  SkillCreditTransaction[]
+  ratingsGiven        Rating[]                 @relation("RatingAuthor")
+  ratingsReceived     Rating[]                 @relation("RatingSubject")
+  endorsementsGiven   SkillEndorsement[]       @relation("EndorsementAuthor")
+  endorsementsReceived SkillEndorsement[]      @relation("EndorsementSubject")
+  communityMemberships CommunityMember[]
+  communitiesCreated  Community[]              @relation("CommunityCreator")
+  messagesSent        Message[]                @relation("MessageSender")
+  messagesReceived    Message[]                @relation("MessageReceiver")
+  notifications       Notification[]
+  reportsFiled        Report[]                 @relation("ReportAuthor")
+  chainMemberships    SkillChainMember[]
+  progress            Progress[]
+}
+
+model Profile {
+  id                 String   @id @default(cuid())
+  userId             String   @unique
+  name               String
+  username           String   @unique
+  bio                String   @default("")
+  location           String   @default("")
+  avatarColor        String   @default("fern")
+  platformLevel      String   @default("GROWING")
+  onboardingComplete Boolean  @default(false)
+  reliability        Int      @default(100)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Skill {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  category    String
+  description String   @default("")
+  createdAt   DateTime @default(now())
+
+  subSkills       SubSkill[]
+  userSkills      UserSkill[]
+  learningGoals   LearningGoal[]
+  posts           Post[]
+  followedBy      SkillFollow[]
+  teachExchanges  Exchange[]       @relation("TeachSkill")
+  learnExchanges  Exchange[]       @relation("LearnSkill")
+  endorsements    SkillEndorsement[]
+  progress        Progress[]
+  chainSteps      SkillChainMember[]
+}
+
+model SubSkill {
+  id      String @id @default(cuid())
+  skillId String
+  name    String
+  slug    String
+
+  skill Skill @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([skillId, slug])
+}
+
+model UserSkill {
+  id        String   @id @default(cuid())
+  userId    String
+  skillId   String
+  kind      String
+  level     String   @default("BASICS")
+  subskills String   @default("")
+  createdAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skill Skill @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, skillId, kind])
+  @@index([kind, skillId])
+}
+
+model LearningGoal {
+  id        String   @id @default(cuid())
+  userId    String
+  skillId   String
+  note      String   @default("")
+  status    String   @default("OPEN")
+  createdAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skill Skill @relation(fields: [skillId], references: [id], onDelete: Cascade)
+}
+
+model Post {
+  id        String   @id @default(cuid())
+  authorId  String
+  skillId   String?
+  type      String   @default("UPDATE")
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  author    User           @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  skill     Skill?         @relation(fields: [skillId], references: [id], onDelete: SetNull)
+  reactions PostReaction[]
+
+  @@index([createdAt])
+}
+
+model PostReaction {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  type      String   @default("HELPFUL")
+  createdAt DateTime @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+}
+
+model Follow {
+  id          String   @id @default(cuid())
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+
+  follower  User @relation("FollowFrom", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("FollowTo", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+}
+
+model SkillFollow {
+  id        String   @id @default(cuid())
+  userId    String
+  skillId   String
+  createdAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skill Skill @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, skillId])
+}
+
+model Exchange {
+  id          String   @id @default(cuid())
+  proposerId  String
+  recipientId String
+  teachSkillId String
+  learnSkillId String
+  status      String   @default("PROPOSED")
+  mode        String   @default("DIRECT")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  proposer  User  @relation("ExchangeProposer", fields: [proposerId], references: [id])
+  recipient User  @relation("ExchangeRecipient", fields: [recipientId], references: [id])
+  teachSkill Skill @relation("TeachSkill", fields: [teachSkillId], references: [id])
+  learnSkill Skill @relation("LearnSkill", fields: [learnSkillId], references: [id])
+  proposal  ExchangeProposal?
+  plan      LearningPlan?
+  sessions  Session[]
+  progress  Progress[]
+  ratings   Rating[]
+  messages  Message[]
+
+  @@index([proposerId, status])
+  @@index([recipientId, status])
+}
+
+model ExchangeProposal {
+  id               String   @id @default(cuid())
+  exchangeId       String   @unique
+  note             String   @default("")
+  sessionCount     Int      @default(4)
+  durationMinutes  Int      @default(45)
+  availability     String   @default("")
+  privateDeclineReason String @default("")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  exchange Exchange @relation(fields: [exchangeId], references: [id], onDelete: Cascade)
+}
+
+model LearningPlan {
+  id                  String   @id @default(cuid())
+  exchangeId          String   @unique
+  title               String
+  proposerApprovedAt  DateTime?
+  recipientApprovedAt DateTime?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  exchange Exchange           @relation(fields: [exchangeId], references: [id], onDelete: Cascade)
+  items    LearningPlanItem[]
+}
+
+model LearningPlanItem {
+  id          String   @id @default(cuid())
+  planId      String
+  week        Int
+  title       String
+  description String
+  side        String   @default("BOTH")
+  status      String   @default("NOT_STARTED")
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  plan LearningPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@index([planId, sortOrder])
+}
+
+model Session {
+  id                 String   @id @default(cuid())
+  exchangeId         String
+  teacherId          String
+  learnerId          String
+  title              String
+  durationMinutes    Int      @default(45)
+  scheduledFor       DateTime?
+  teacherCompletedAt DateTime?
+  learnerConfirmedAt DateTime?
+  creditAwardedAt    DateTime?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  exchange Exchange @relation(fields: [exchangeId], references: [id], onDelete: Cascade)
+  teacher  User     @relation("SessionTeacher", fields: [teacherId], references: [id])
+  learner  User     @relation("SessionLearner", fields: [learnerId], references: [id])
+  tasks    SessionTask[]
+  creditTransaction SkillCreditTransaction?
+}
+
+model SessionTask {
+  id        String   @id @default(cuid())
+  sessionId String
+  title     String
+  status    String   @default("NOT_STARTED")
+  createdAt DateTime @default(now())
+
+  session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+}
+
+model Progress {
+  id         String   @id @default(cuid())
+  userId     String
+  exchangeId String
+  skillId    String
+  percent    Int      @default(0)
+  note       String   @default("")
+  updatedAt  DateTime @updatedAt
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exchange Exchange @relation(fields: [exchangeId], references: [id], onDelete: Cascade)
+  skill    Skill    @relation(fields: [skillId], references: [id])
+
+  @@unique([userId, exchangeId, skillId])
+}
+
+model SkillCreditTransaction {
+  id        String   @id @default(cuid())
+  userId    String
+  sessionId String?  @unique
+  amount    Int
+  type      String
+  reason    String
+  createdAt DateTime @default(now())
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  session Session? @relation(fields: [sessionId], references: [id])
+
+  @@index([userId, createdAt])
+}
+
+model Rating {
+  id            String   @id @default(cuid())
+  exchangeId    String
+  authorId      String
+  subjectId     String
+  teaching      Int
+  reliability   Int
+  communication Int
+  helpfulness   Int
+  respect       Int
+  overall       Int
+  note          String   @default("")
+  createdAt     DateTime @default(now())
+
+  exchange Exchange @relation(fields: [exchangeId], references: [id], onDelete: Cascade)
+  author   User     @relation("RatingAuthor", fields: [authorId], references: [id])
+  subject  User     @relation("RatingSubject", fields: [subjectId], references: [id])
+
+  @@unique([exchangeId, authorId])
+}
+
+model SkillEndorsement {
+  id        String   @id @default(cuid())
+  skillId   String
+  authorId  String
+  subjectId String
+  createdAt DateTime @default(now())
+
+  skill   Skill @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  author  User  @relation("EndorsementAuthor", fields: [authorId], references: [id])
+  subject User  @relation("EndorsementSubject", fields: [subjectId], references: [id])
+
+  @@unique([skillId, authorId, subjectId])
+}
+
+model Community {
+  id          String   @id @default(cuid())
+  creatorId   String
+  name        String
+  slug        String   @unique
+  description String
+  isPrivate   Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  creator User              @relation("CommunityCreator", fields: [creatorId], references: [id])
+  members CommunityMember[]
+  posts   CommunityPost[]
+  chains  SkillChain[]
+}
+
+model CommunityMember {
+  id          String   @id @default(cuid())
+  communityId String
+  userId      String
+  role        String   @default("MEMBER")
+  joinedAt    DateTime @default(now())
+
+  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([communityId, userId])
+}
+
+model CommunityPost {
+  id          String   @id @default(cuid())
+  communityId String
+  authorId    String
+  content     String
+  createdAt   DateTime @default(now())
+
+  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+}
+
+model SkillChain {
+  id          String   @id @default(cuid())
+  communityId String?
+  name        String
+  status      String   @default("FORMING")
+  createdAt   DateTime @default(now())
+
+  community Community?       @relation(fields: [communityId], references: [id], onDelete: SetNull)
+  members   SkillChainMember[]
+}
+
+model SkillChainMember {
+  id        String   @id @default(cuid())
+  chainId   String
+  userId    String
+  skillId   String
+  position  Int
+  createdAt DateTime @default(now())
+
+  chain SkillChain @relation(fields: [chainId], references: [id], onDelete: Cascade)
+  user  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skill Skill      @relation(fields: [skillId], references: [id])
+
+  @@unique([chainId, position])
+  @@unique([chainId, userId])
+}
+
+model Message {
+  id         String   @id @default(cuid())
+  senderId   String
+  receiverId String
+  exchangeId String?
+  content    String
+  readAt     DateTime?
+  createdAt  DateTime @default(now())
+
+  sender   User      @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver User      @relation("MessageReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+  exchange Exchange? @relation(fields: [exchangeId], references: [id], onDelete: SetNull)
+
+  @@index([senderId, receiverId, createdAt])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  title     String
+  body      String
+  href      String   @default("")
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+model Report {
+  id         String   @id @default(cuid())
+  authorId   String
+  targetType String
+  targetId   String
+  reason     String
+  status     String   @default("OPEN")
+  createdAt  DateTime @default(now())
+
+  author User @relation("ReportAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+}
