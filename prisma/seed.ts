@@ -2,6 +2,17 @@ import "dotenv/config";
 import { readFile } from "node:fs/promises";
 import { createClient } from "@libsql/client";
 import { hash } from "bcryptjs";
+import { assertSeedIsSafe } from "./seed-guard";
+
+// Runs before anything touches the database. The seed deletes ALL data.
+let target: string;
+try {
+  target = assertSeedIsSafe(process.env);
+} catch (error) {
+  console.error(error instanceof Error ? error.message : error);
+  process.exit(1);
+}
+console.log(`Seeding ${target} (this deletes all existing data)...`);
 
 const databaseUrl = process.env.DATABASE_URL ?? "file:./prisma/dev.db";
 const sqlite = createClient({ url: databaseUrl });

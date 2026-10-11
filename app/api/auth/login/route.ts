@@ -4,6 +4,7 @@ import { z } from "zod";
 import { setSessionCookie } from "@/lib/auth";
 import { apiError, rateLimit, rejectCrossSiteMutation } from "@/lib/api";
 import { db } from "@/lib/db";
+import { isDemoAccount } from "@/lib/demo-accounts";
 
 const loginSchema = z.object({
   email: z
@@ -24,6 +25,11 @@ export async function POST(request: Request) {
 
   const parsed = loginSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return apiError("Enter a valid email and password.");
+    // Seeded demo accounts share a public password, so they can only sign in
+  // with it while demo mode is on. Same message as a wrong password.
+  if (isDemoAccount(parsed.data.email) && process.env.DEMO_MODE !== "true") {
+    return apiError("The email or password is not correct.", 401);
+  }
 
   const user = await db.user.findUnique({
     where: { email: parsed.data.email },
