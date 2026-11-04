@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, useId } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Sparkles, X } from "lucide-react";
 import { Button, buttonClassName } from "@/components/ui/button";
@@ -21,6 +21,7 @@ export function ProposalModal({
   label = "Propose exchange",
 }: ProposalModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const dialogHeadingId = useId();
   const router = useRouter();
   const [teachSkillId, setTeachSkillId] = useState(teachOptions[0]?.id ?? "");
   const [learnSkillId, setLearnSkillId] = useState(learnOptions[0]?.id ?? "");
@@ -87,6 +88,7 @@ export function ProposalModal({
       </button>
       <dialog
         ref={dialogRef}
+        aria-labelledby={dialogHeadingId}
         className="m-auto w-[calc(100%-2rem)] max-w-2xl rounded-2xl border border-line bg-surface p-0 text-ink shadow-lift backdrop:bg-[#11251D]/45 open:animate-fade-up"
       >
         <form onSubmit={submit}>
@@ -95,7 +97,10 @@ export function ProposalModal({
               <p className="text-sm font-extrabold text-brand">
                 Suggested skill exchange
               </p>
-              <h2 className="mt-1 text-xl font-extrabold tracking-tight">
+              <h2
+                id={dialogHeadingId}
+                className="mt-1 text-xl font-extrabold tracking-tight"
+              >
                 Make a plan with {person.name}
               </h2>
             </div>
